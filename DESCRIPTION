@@ -1,0 +1,28 @@
+Package: limnoqc
+Title: Quality Control Tools for Limnological Monitoring Data
+Version: 0.1.0
+Authors@R: person("Chris", "McBride", role = c("aut", "cre"),
+    email = "chris@limnotrack.com")
+Description: Statistical and contextual quality control for profiler, buoy,
+    and fixed-depth sensor data. Includes sensor drift detection and
+    correction (pH, DO gain, offsets), service interval detection from
+    multi-variable patterns, data coverage analysis, meteorological QC
+    (barometric pressure, humidity, rainfall, solar radiation drift via
+    clear-sky modelling), profile validation, outlier filtering, and
+    stuck-sensor detection. Judgement-based functions that depend on
+    time series context and site-specific knowledge.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    stats,
+    data.table
+Suggests:
+    ltvocab,
+    limnosens,
+    dplyr,
+    ggplot2,
+    patchwork,
+    MeTo,
+    lubridate
+Config/roxygen2/version: 8.1.0
