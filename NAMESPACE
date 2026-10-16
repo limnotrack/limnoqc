@@ -1,1 +1,13 @@
 # Auto-generated — run devtools::document() to update
+export(excise)
+export(excise_from_metadata)
+export(qc_nems_codes)
+export(qc_nems_colours)
+export(qc_colours_for_var)
+export(scale_colour_qc)
+export(scale_fill_qc)
+export(qc_grade_sensor)
+export(qc_grade_calibration)
+export(qc_grade_verification)
+export(qc_grade_interval)
+export(qc_initial)
