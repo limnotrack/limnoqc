@@ -160,7 +160,33 @@ export_qc <- function(df, site, col_datetime = "datetime",
     }
   }
 
-  # -- 5. Tier filtering (set rejected values to NA) -------------------------
+  # -- 5. Spike detection (from qc_filters.csv roc column) -------------------
+  if (!is.null(filters)) {
+    for (i in seq_len(nrow(f))) {
+      roc <- suppressWarnings(as.numeric(f$roc[i]))
+      if (is.na(roc)) next
+      matched <- data_cols[startsWith(data_cols, f$var[i])]
+      for (v in matched) {
+        spikes <- detect_spikes(df[[v]], threshold = roc)
+        df <- .flag_worst(df, v, which(spikes), 3L)  # suspect
+      }
+    }
+  }
+
+  # -- 6. Stuck sensor detection (from qc_filters.csv consec column) ---------
+  if (!is.null(filters)) {
+    for (i in seq_len(nrow(f))) {
+      consec <- suppressWarnings(as.integer(f$consec[i]))
+      if (is.na(consec) || consec >= 999999L) next
+      matched <- data_cols[startsWith(data_cols, f$var[i])]
+      for (v in matched) {
+        stuck <- detect_stuck(df[[v]], n_consec = consec)
+        df <- .flag_worst(df, v, which(stuck), 3L)  # suspect
+      }
+    }
+  }
+
+  # -- 7. Tier filtering (set rejected values to NA) -------------------------
   if (tier != "all") {
     threshold <- switch(tier, research = 1L, operational = 3L)
     for (v in data_cols) {
