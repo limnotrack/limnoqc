@@ -6,10 +6,10 @@
 #' the expected envelope are suspect.
 #'
 #' The threshold curve is:
-#' \deqn{y(t) = y_{centre} + amplitude \cdot \sin(2\pi \cdot (t - x_{centre}) / period)}
+#' \deqn{y(t) = y_{centre} + amplitude \cdot \sin(2\pi \cdot (doy - x_{centre}) / 365.25)}
 #'
-#' where \code{t} is time in the same units as \code{period} (default:
-#' decimal year).
+#' where \code{doy} is fractional day of year and \code{x_centre} is the
+#' day of year at which the sinusoid peaks.
 #'
 #' @param x Numeric vector of values to test.
 #' @param datetime POSIXct vector of timestamps.
@@ -17,23 +17,15 @@
 #'   annual temperature).
 #' @param amplitude Numeric. Half-range of the sinusoid (e.g. seasonal
 #'   temperature range / 2).
-#' @param x_centre Numeric. Phase offset — the decimal year (or day of
-#'   year if \code{period = 365}) at which the sinusoid peaks. For
-#'   southern hemisphere water temperature, peak is ~mid-February
-#'   (x_centre ≈ 2026.12 or DOY ≈ 45).
-#' @param period Numeric. Period in the same units as \code{x_centre}.
-#'   Default 365.25 (days, matching DOY-based x_centre). Set to 1 for
-#'   decimal-year x_centre.
+#' @param x_centre Numeric. Day of year (1–366) at which the sinusoid
+#'   peaks. For southern hemisphere water temperature, peak is
+#'   ~mid-February (x_centre ≈ 46).
 #' @param sides One of \code{"above"} (flag values above the curve),
 #'   \code{"below"} (flag values below), or \code{"outside"} (flag
-#'   values outside ± the curve, treating amplitude as a band).
-#' @param offset Numeric. Additional vertical offset from the sinusoid
-#'   before flagging. Default 0. For \code{sides = "outside"}, this
-#'   widens the envelope by \code{offset} on each side.
-#' @param time_unit How to convert datetime to the sinusoidal x-axis.
-#'   \code{"doy"} (default) = day of year (1–366), matching
-#'   \code{period = 365.25}. \code{"decimal_year"} = fractional year,
-#'   matching \code{period = 1}.
+#'   values outside ± offset from the curve).
+#' @param offset Numeric. Vertical buffer from the sinusoid before
+#'   flagging. Default 0. For \code{sides = "outside"}, this widens
+#'   the envelope by \code{offset} on each side.
 #' @return Logical vector, same length as \code{x}. \code{TRUE} = flagged.
 #'
 #' @export
@@ -41,11 +33,11 @@
 #' @examples
 #' \dontrun{
 #' # Flag water temperatures above a seasonal upper bound
-#' # Peak ~Feb 15 (DOY 46), mean 14°C, amplitude 8°C, + 3°C offset
+#' # Peak DOY 46 (~Feb 15), mean 14°C, amplitude 8°C, +3°C buffer
 #' flagged <- filter_sinusoidal(
 #'   pro$t_wtr_degc, pro$datetime,
 #'   y_centre = 14, amplitude = 8, x_centre = 46,
-#'   period = 365.25, sides = "above", offset = 3
+#'   sides = "above", offset = 3
 #' )
 #'
 #' # Flag outside a seasonal envelope (both sides)
@@ -57,34 +49,19 @@
 #' }
 filter_sinusoidal <- function(x, datetime,
                               y_centre, amplitude, x_centre,
-                              period = 365.25,
                               sides = c("above", "below", "outside"),
-                              offset = 0,
-                              time_unit = c("doy", "decimal_year")) {
-  sides     <- match.arg(sides)
-  time_unit <- match.arg(time_unit)
+                              offset = 0) {
+  sides <- match.arg(sides)
 
-  n <- length(x)
-  flagged <- rep(FALSE, n)
+  # Fractional day of year
+  doy <- as.numeric(format(datetime, "%j")) +
+         as.numeric(format(datetime, "%H")) / 24 +
+         as.numeric(format(datetime, "%M")) / 1440
 
-  # Convert datetime to sinusoidal x-axis
-  t_val <- switch(time_unit,
-    doy = {
-      as.numeric(format(datetime, "%j")) +
-        as.numeric(format(datetime, "%H")) / 24 +
-        as.numeric(format(datetime, "%M")) / 1440
-    },
-    decimal_year = {
-      yr  <- as.numeric(format(datetime, "%Y"))
-      doy <- as.numeric(format(datetime, "%j"))
-      yr + (doy - 1) / 365.25
-    }
-  )
+  # Sinusoidal curve (period = 1 year)
+  curve <- y_centre + amplitude * sin(2 * pi * (doy - x_centre) / 365.25)
 
-  # Sinusoidal curve
-  curve <- y_centre + amplitude * sin(2 * pi * (t_val - x_centre) / period)
-
-  valid <- !is.na(x) & !is.na(t_val)
+  valid <- !is.na(x) & !is.na(doy)
 
   flagged <- switch(sides,
     above   = valid & x > (curve + offset),
@@ -109,24 +86,13 @@ filter_sinusoidal <- function(x, datetime,
 #'
 #' @export
 sinusoidal_curve <- function(datetime, y_centre, amplitude, x_centre,
-                             period = 365.25, offset = 0,
-                             time_unit = c("doy", "decimal_year")) {
-  time_unit <- match.arg(time_unit)
+                             offset = 0) {
 
-  t_val <- switch(time_unit,
-    doy = {
-      as.numeric(format(datetime, "%j")) +
-        as.numeric(format(datetime, "%H")) / 24 +
-        as.numeric(format(datetime, "%M")) / 1440
-    },
-    decimal_year = {
-      yr  <- as.numeric(format(datetime, "%Y"))
-      doy <- as.numeric(format(datetime, "%j"))
-      yr + (doy - 1) / 365.25
-    }
-  )
+  doy <- as.numeric(format(datetime, "%j")) +
+         as.numeric(format(datetime, "%H")) / 24 +
+         as.numeric(format(datetime, "%M")) / 1440
 
-  curve <- y_centre + amplitude * sin(2 * pi * (t_val - x_centre) / period)
+  curve <- y_centre + amplitude * sin(2 * pi * (doy - x_centre) / 365.25)
 
   data.frame(
     datetime = datetime,
