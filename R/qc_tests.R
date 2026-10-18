@@ -58,6 +58,9 @@ detect_spikes <- function(x, threshold) {
 #' @param tolerance Numeric. Values within \code{tolerance} of each other
 #'   are considered identical. Default 0 (exact match). Set to the sensor's
 #'   resolution for noisy channels.
+#' @param keep_first Logical. If \code{TRUE} (default), the first value
+#'   in each stuck run is not flagged — it's the last real reading before
+#'   the sensor froze. If \code{FALSE}, the entire run is flagged.
 #' @return Logical vector, same length as \code{x}. \code{TRUE} = stuck.
 #'
 #' @details
@@ -72,7 +75,7 @@ detect_spikes <- function(x, threshold) {
 #' @examples
 #' x <- c(1:5, rep(7.0, 20), 8:10)
 #' detect_stuck(x, n_consec = 10)
-detect_stuck <- function(x, n_consec = 10L, tolerance = 0) {
+detect_stuck <- function(x, n_consec = 10L, tolerance = 0, keep_first = TRUE) {
   n <- length(x)
   stuck <- rep(FALSE, n)
   if (n < n_consec) return(stuck)
@@ -94,7 +97,8 @@ detect_stuck <- function(x, n_consec = 10L, tolerance = 0) {
   for (i in seq_along(r$lengths)) {
     if (is.na(r$values[i])) next
     if (r$lengths[i] >= n_consec) {
-      stuck[starts[i]:ends[i]] <- TRUE
+      flag_start <- if (keep_first) starts[i] + 1L else starts[i]
+      stuck[flag_start:ends[i]] <- TRUE
     }
   }
   stuck
