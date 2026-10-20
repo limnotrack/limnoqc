@@ -89,11 +89,11 @@ detect_outliers <- function(x, window = 101L, n_dev = 3,
 
   n_flagged <- sum(result)
   n_valid   <- sum(!is.na(x))
-  pct       <- if (n_valid > 0) round(100 * n_flagged / n_valid, 2) else 0
   attr(result, "n_flagged") <- n_flagged
-  attr(result, "pct_removed") <- pct
+  attr(result, "n_valid")   <- n_valid
+  attr(result, "pct")       <- if (n_valid > 0) round(100 * n_flagged / n_valid, 2) else 0
   if (n_flagged > 0)
-    message(sprintf("[detect_outliers] %d flagged (%.2f%% removed)",
-                    n_flagged, pct))
+    message(sprintf("[detect_outliers] %d of %d values flagged (%.2f%%)",
+                    n_flagged, n_valid, attr(result, "pct")))
   result
 }
