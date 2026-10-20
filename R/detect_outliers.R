@@ -86,5 +86,14 @@ detect_outliers <- function(x, window = 101L, n_dev = 3,
 
   # NA values are not outliers
   result[is.na(x)] <- FALSE
+
+  n_flagged <- sum(result)
+  n_valid   <- sum(!is.na(x))
+  attr(result, "n_flagged") <- n_flagged
+  attr(result, "n_valid")   <- n_valid
+  attr(result, "pct")       <- if (n_valid > 0) round(100 * n_flagged / n_valid, 2) else 0
+  if (n_flagged > 0)
+    message(sprintf("[detect_outliers] %d of %d values flagged (%.2f%%)",
+                    n_flagged, n_valid, attr(result, "pct")))
   result
 }
